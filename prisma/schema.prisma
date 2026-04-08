@@ -3,21 +3,20 @@ generator client {
 }
 
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
+  provider = "sqlite"
+  url      = "file:./dev.db"
 }
 
 model Question {
   id        Int      @id @default(autoincrement())
   label     String
   hint      String?
-  type      String   // text, radio, checkbox
-  options   String?  // JSON string
+  type      String
+  options   String?
   order     Int      @default(0)
   required  Boolean  @default(false)
   isActive  Boolean  @default(true)
-  category  String   @default("diet") // "diet", "general" 등 설문 구분
+  category  String   @default("diet")
   createdAt DateTime @default(now())
 }
 
@@ -28,7 +27,6 @@ model Consultation {
   phone            String?
   ssn              String?
   gender           String?
-  
   heightWeight     String?
   lowestWeight     String?
   dietExperience   String?
@@ -43,8 +41,7 @@ model Consultation {
   femaleHealth     String?
   contactTime      String?
   programInterest  String?
-  
-  answersJson      String?  @db.Text
+  answersJson      String?
   isRead           Boolean  @default(false)
   privacyAgreed    Boolean  @default(false)
   createdAt        DateTime @default(now())
