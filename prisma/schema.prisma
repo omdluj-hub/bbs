@@ -1,0 +1,51 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model Question {
+  id        Int      @id @default(autoincrement())
+  label     String
+  hint      String?
+  type      String   // text, radio, checkbox
+  options   String?  // JSON string
+  order     Int      @default(0)
+  required  Boolean  @default(false)
+  isActive  Boolean  @default(true)
+  category  String   @default("diet") // "diet", "general" 등 설문 구분
+  createdAt DateTime @default(now())
+}
+
+model Consultation {
+  id               Int      @id @default(autoincrement())
+  category         String   @default("diet")
+  name             String
+  phone            String?
+  ssn              String?
+  gender           String?
+  
+  heightWeight     String?
+  lowestWeight     String?
+  dietExperience   String?
+  weightGainType   String?
+  lifestyle        String?
+  thermalSense     String?
+  digestion        String?
+  appetiteChest    String?
+  sleepEnergy      String?
+  sleepDuration    String?
+  physicalSymptoms String?
+  femaleHealth     String?
+  contactTime      String?
+  programInterest  String?
+  
+  answersJson      String?  @db.Text
+  isRead           Boolean  @default(false)
+  privacyAgreed    Boolean  @default(false)
+  createdAt        DateTime @default(now())
+}
