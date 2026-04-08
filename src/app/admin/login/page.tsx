@@ -24,8 +24,8 @@ export default function AdminLoginPage() {
       const data = await res.json();
 
       if (data.success) {
-        router.push('/admin');
-        router.refresh();
+        // router.push 대신 window.location.href를 사용하여 미들웨어가 쿠키를 확실히 인식하게 함
+        window.location.href = '/admin';
       } else {
         setError(data.error);
       }

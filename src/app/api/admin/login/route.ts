@@ -5,12 +5,11 @@ export async function POST(request: Request) {
   try {
     const { password } = await request.json();
 
-    // 요청하신 비밀번호 확인
     if (password === 'gnrnal1075') {
       const response = NextResponse.json({ success: true });
       
-      // 간단한 인증 쿠키 설정 (7일간 유효)
-      (await cookies()).set('admin_auth', 'true', {
+      // 쿠키 설정 보강 (Path와 SameSite 설정 확인)
+      response.cookies.set('admin_auth', 'true', {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax',
