@@ -40,7 +40,7 @@ export default function AdminLoginPage() {
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6 text-gray-800">
       <div className="max-w-md w-full bg-white p-8 rounded-2xl shadow-sm border border-gray-100">
         <div className="text-center mb-8">
-          <h1 className="text-2xl font-black italic mb-2">BBS ADMIN</h1>
+          <h1 className="text-2xl font-black mb-2">후한의원 구미점 관리자</h1>
           <p className="text-sm text-gray-400 font-medium">관리자 전용 로그인입니다.</p>
         </div>
 

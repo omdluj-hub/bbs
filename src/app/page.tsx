@@ -7,7 +7,7 @@ export default function RootPage() {
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
       <div className="max-w-md w-full space-y-6">
         <div className="text-center mb-12">
-          <h1 className="text-3xl font-black text-gray-900 mb-2 italic">BBS CLINIC</h1>
+          <h1 className="text-3xl font-black text-gray-900 mb-2">후한의원 구미점 설문지</h1>
           <p className="text-gray-500 font-medium">상담을 원하시는 설문지를 선택해주세요.</p>
         </div>
 
