@@ -8,71 +8,22 @@ export async function POST(request: Request) {
     const category = data.category || 'diet'
     const answers = data.answers || {}
 
-    // Resend 인스턴스를 요청 시점에 생성하여 빌드 오류 방지
+    // Resend 인스턴스 생성 및 환경 변수 체크
     const resendApiKey = process.env.RESEND_API_KEY;
+    
+    if (!resendApiKey) {
+      console.error('CRITICAL: RESEND_API_KEY is not defined in environment variables!');
+    }
+
     const resend = resendApiKey ? new Resend(resendApiKey) : null;
-
-    console.log('--- Email Debug Info ---');
-    console.log('RESEND_API_KEY exists:', !!resendApiKey);
-    if (resendApiKey) console.log('RESEND_API_KEY prefix:', resendApiKey.substring(0, 7));
-    console.log('ADMIN_EMAIL:', process.env.ADMIN_EMAIL || 'omdluj@gmail.com');
-    console.log('------------------------');
-
-    // 유동적인 답변 데이터에서 특정 값을 찾아주는 헬퍼 함수
-    const getVal = (legacyKey: string, labels: string[]) => {
-      // 1. 최상위 레벨에 값이 있는지 확인
-      if (data[legacyKey]) return data[legacyKey];
-      // 2. answers 객체 내에 해당 라벨들이 있는지 확인
-      for (const label of labels) {
-        if (answers[label]) return answers[label];
-      }
-      return null;
-    }
-
-    // JSON 배열로 저장해야 하는 항목들을 위한 헬퍼
-    const getJsonVal = (legacyKey: string, labels: string[]) => {
-      const val = getVal(legacyKey, labels);
-      if (!val) return "[]";
-      return Array.isArray(val) ? JSON.stringify(val) : JSON.stringify([val]);
-    }
-
-    const consultation = await prisma.consultation.create({
-      data: {
-        category: category,
-        name: data.name || answers["이름"] || "미입력",
-        phone: data.phone || answers["전화번호"] || "",
-        ssn: data.ssn || answers["주민등록번호"] || answers["생년월일"] || "",
-        gender: data.gender || answers["성별"] || "",
-        
-        // 다이어트 설문 전용 필드 매핑 (동적 문항 라벨과 연결)
-        heightWeight: getVal('heightWeight', ["키/몸무게", "키", "몸무게"]),
-        lowestWeight: getVal('lowestWeight', ["최근 5년간 최저 몸무게", "최저 몸무게"]),
-        dietExperience: getJsonVal('dietExperience', ["다이어트 경험 체크", "다이어트 경험"]),
-        weightGainType: getJsonVal('weightGainType', ["체중 증가 유형"]),
-        lifestyle: getJsonVal('lifestyle', ["음주/흡연 여부", "생활습관"]),
-        thermalSense: getJsonVal('thermalSense', ["추위/더위/한열"]),
-        digestion: getJsonVal('digestion', ["소화/대소변"]),
-        appetiteChest: getJsonVal('appetiteChest', ["식욕/흉협"]),
-        sleepEnergy: getJsonVal('sleepEnergy', ["수면/체력"]),
-        sleepDuration: getVal('sleepDuration', ["하루 평균 수면 시간", "수면시간"]),
-        physicalSymptoms: getJsonVal('physicalSymptoms', ["신체증상/기타"]),
-        femaleHealth: getJsonVal('femaleHealth', ["여성질환 (해당 시 체크)", "여성질환"]),
-        contactTime: getJsonVal('contactTime', ["연락 가능한 시간대"]),
-        programInterest: getJsonVal('programInterest', ["관심 있는 프로그램"]),
-        
-        privacyAgreed: data.privacyAgreed === undefined ? true : data.privacyAgreed,
-        answersJson: JSON.stringify(answers), // 모든 답변 원본 보관
-      }
-    })
 
     // 관리자 이메일 알림 발송 (확실히 완료될 때까지 기다림)
     try {
-      if (resend) {
+      if (resend && resendApiKey) {
         const adminEmail = process.env.ADMIN_EMAIL || 'omdluj@gmail.com';
-        console.log('--- Attempting Email Send ---');
-        console.log('To:', adminEmail);
+        console.log(`[Email] Attempting send to: ${adminEmail} using key prefix: ${resendApiKey.substring(0, 7)}`);
         
-        const { data: emailData, error: emailError } = await resend.emails.send({
+        const emailResult = await resend.emails.send({
           from: 'onboarding@resend.dev',
           to: adminEmail,
           subject: `[새로운 상담 접수] ${consultation.name}님의 ${category === 'diet' ? '다이어트' : '일반'} 차트가 접수되었습니다.`,
@@ -94,16 +45,16 @@ export async function POST(request: Request) {
           `
         });
 
-        if (emailError) {
-          console.error('Resend API Error Detail:', JSON.stringify(emailError));
+        if (emailResult.error) {
+          console.error('[Email Error] Resend API returned an error:', JSON.stringify(emailResult.error));
         } else {
-          console.log('Email sent successfully. ID:', emailData?.id);
+          console.log('[Email Success] Sent successfully. ID:', emailResult.data?.id);
         }
       } else {
-        console.warn('Resend API object is null. Check API Key.');
+        console.error('[Email Error] Cannot send email: Resend instance or API key is missing.');
       }
     } catch (emailError: any) {
-      console.error('Unexpected Email Error:', emailError.message || emailError);
+      console.error('[Email Error] Unexpected exception:', emailError.message || emailError);
     }
 
     return NextResponse.json({ success: true, data: consultation })
