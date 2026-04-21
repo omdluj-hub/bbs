@@ -1,6 +1,8 @@
 import prisma from "@/lib/prisma";
 import AdminDashboard from "./AdminDashboard";
 
+export const dynamic = 'force-dynamic';
+
 export default async function AdminPage() {
   const consultations = await prisma.consultation.findMany({
     orderBy: { createdAt: 'desc' }

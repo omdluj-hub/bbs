@@ -43,12 +43,8 @@ export default function AdminDashboard({ initialConsultations }: AdminDashboardP
     }
   };
 
-  // 카테고리가 변경될 때만 다시 가져오기
+  // 카테고리가 변경될 때마다 다시 가져오기
   useEffect(() => {
-    // 초기 마운트 시 'all'이면서 데이터가 이미 있으면 페칭 건너뜀
-    if (currentCategory === 'all' && consultations.length > 0 && consultations === initialConsultations) {
-      return;
-    }
     fetchConsultations();
   }, [currentCategory]);
 
