@@ -63,7 +63,7 @@ export async function POST(request: Request) {
     try {
       if (resend) {
         const adminEmail = process.env.ADMIN_EMAIL || 'hoban2011902@naver.com';
-        await resend.emails.send({
+        const emailResponse = await resend.emails.send({
           from: 'BBS Admin <onboarding@resend.dev>',
           to: adminEmail,
           subject: `[새로운 상담 접수] ${consultation.name}님의 ${category === 'diet' ? '다이어트' : '일반'} 차트가 접수되었습니다.`,
@@ -84,6 +84,7 @@ export async function POST(request: Request) {
             </div>
           `
         });
+        console.log('Email sent successfully:', emailResponse);
       } else {
         console.warn('Resend API key is missing. Email notification skipped.');
       }
