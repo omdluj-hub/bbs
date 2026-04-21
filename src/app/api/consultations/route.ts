@@ -100,9 +100,6 @@ export async function POST(request: Request) {
     } catch (emailError) {
       console.error('Unexpected Email Error:', emailError);
     }
-      console.error('Email Notification Error:', emailError);
-      // 이메일 발송 실패가 상담 접수 자체의 실패로 이어지지 않도록 함
-    }
 
     return NextResponse.json({ success: true, data: consultation })
   } catch (error) {
