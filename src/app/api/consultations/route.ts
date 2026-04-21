@@ -59,12 +59,16 @@ export async function POST(request: Request) {
       }
     })
 
-    // 관리자 이메일 알림 발송 (비동기로 실행하여 응답 지연 최소화)
+    // 관리자 이메일 알림 발송
     try {
       if (resend) {
+        // Vercel 환경변수 우선, 없으면 하드코딩된 본인 계정 이메일 사용
         const adminEmail = process.env.ADMIN_EMAIL || 'omdluj@gmail.com';
-        const emailResponse = await resend.emails.send({
-          from: 'BBS Admin <onboarding@resend.dev>',
+        
+        console.log('Attempting to send email to:', adminEmail);
+        
+        const { data: emailData, error: emailError } = await resend.emails.send({
+          from: 'onboarding@resend.dev',
           to: adminEmail,
           subject: `[새로운 상담 접수] ${consultation.name}님의 ${category === 'diet' ? '다이어트' : '일반'} 차트가 접수되었습니다.`,
           html: `
@@ -84,11 +88,18 @@ export async function POST(request: Request) {
             </div>
           `
         });
-        console.log('Email sent successfully:', emailResponse);
+
+        if (emailError) {
+          console.error('Resend API Error:', emailError);
+        } else {
+          console.log('Email sent successfully. ID:', emailData?.id);
+        }
       } else {
         console.warn('Resend API key is missing. Email notification skipped.');
       }
     } catch (emailError) {
+      console.error('Unexpected Email Error:', emailError);
+    }
       console.error('Email Notification Error:', emailError);
       // 이메일 발송 실패가 상담 접수 자체의 실패로 이어지지 않도록 함
     }
