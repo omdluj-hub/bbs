@@ -12,6 +12,12 @@ export async function POST(request: Request) {
     const resendApiKey = process.env.RESEND_API_KEY;
     const resend = resendApiKey ? new Resend(resendApiKey) : null;
 
+    console.log('--- Email Debug Info ---');
+    console.log('RESEND_API_KEY exists:', !!resendApiKey);
+    if (resendApiKey) console.log('RESEND_API_KEY prefix:', resendApiKey.substring(0, 7));
+    console.log('ADMIN_EMAIL:', process.env.ADMIN_EMAIL || 'omdluj@gmail.com');
+    console.log('------------------------');
+
     // 유동적인 답변 데이터에서 특정 값을 찾아주는 헬퍼 함수
     const getVal = (legacyKey: string, labels: string[]) => {
       // 1. 최상위 레벨에 값이 있는지 확인
