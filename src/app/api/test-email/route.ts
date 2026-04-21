@@ -3,7 +3,7 @@ import { Resend } from 'resend';
 
 export async function GET() {
   const apiKey = process.env.RESEND_API_KEY;
-  const adminEmail = process.env.ADMIN_EMAIL || 'omdluj@gmail.com';
+  const adminEmail = process.env.ADMIN_EMAIL || 'hoban2011902@naver.com';
 
   const debugInfo = {
     hasApiKey: !!apiKey,
