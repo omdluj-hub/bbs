@@ -8,22 +8,55 @@ export async function POST(request: Request) {
     const category = data.category || 'diet'
     const answers = data.answers || {}
 
-    // Resend 인스턴스 생성 및 환경 변수 체크
-    const resendApiKey = process.env.RESEND_API_KEY;
-    
-    if (!resendApiKey) {
-      console.error('CRITICAL: RESEND_API_KEY is not defined in environment variables!');
+    // 1. 상담 데이터 DB 저장
+    const getVal = (legacyKey: string, labels: string[]) => {
+      if (data[legacyKey]) return data[legacyKey];
+      for (const label of labels) {
+        if (answers[label]) return answers[label];
+      }
+      return null;
     }
 
-    const resend = resendApiKey ? new Resend(resendApiKey) : null;
+    const getJsonVal = (legacyKey: string, labels: string[]) => {
+      const val = getVal(legacyKey, labels);
+      if (!val) return "[]";
+      return Array.isArray(val) ? JSON.stringify(val) : JSON.stringify([val]);
+    }
 
-    // 관리자 이메일 알림 발송 (확실히 완료될 때까지 기다림)
-    try {
-      if (resend && resendApiKey) {
+    const consultation = await prisma.consultation.create({
+      data: {
+        category: category,
+        name: data.name || answers["이름"] || "미입력",
+        phone: data.phone || answers["전화번호"] || "",
+        ssn: data.ssn || answers["주민등록번호"] || answers["생년월일"] || "",
+        gender: data.gender || answers["성별"] || "",
+        heightWeight: getVal('heightWeight', ["키/몸무게", "키", "몸무게"]),
+        lowestWeight: getVal('lowestWeight', ["최근 5년간 최저 몸무게", "최저 몸무게"]),
+        dietExperience: getJsonVal('dietExperience', ["다이어트 경험 체크", "다이어트 경험"]),
+        weightGainType: getJsonVal('weightGainType', ["체중 증가 유형"]),
+        lifestyle: getJsonVal('lifestyle', ["음주/흡연 여부", "생활습관"]),
+        thermalSense: getJsonVal('thermalSense', ["추위/더위/한열"]),
+        digestion: getJsonVal('digestion', ["소화/대소변"]),
+        appetiteChest: getJsonVal('appetiteChest', ["식욕/흉협"]),
+        sleepEnergy: getJsonVal('sleepEnergy', ["수면/체력"]),
+        sleepDuration: getVal('sleepDuration', ["하루 평균 수면 시간", "수면시간"]),
+        physicalSymptoms: getJsonVal('physicalSymptoms', ["신체증상/기타"]),
+        femaleHealth: getJsonVal('femaleHealth', ["여성질환 (해당 시 체크)", "여성질환"]),
+        contactTime: getJsonVal('contactTime', ["연락 가능한 시간대"]),
+        programInterest: getJsonVal('programInterest', ["관심 있는 프로그램"]),
+        privacyAgreed: data.privacyAgreed === undefined ? true : data.privacyAgreed,
+        answersJson: JSON.stringify(answers),
+      }
+    })
+
+    // 2. 이메일 알림 발송 로직 (POST 핸들러 내부에서 직접 처리)
+    const apiKey = process.env.RESEND_API_KEY;
+    if (apiKey) {
+      try {
+        const resend = new Resend(apiKey);
         const adminEmail = process.env.ADMIN_EMAIL || 'omdluj@gmail.com';
-        console.log(`[Email] Attempting send to: ${adminEmail} using key prefix: ${resendApiKey.substring(0, 7)}`);
         
-        const emailResult = await resend.emails.send({
+        const { data: emailData, error: emailError } = await resend.emails.send({
           from: 'onboarding@resend.dev',
           to: adminEmail,
           subject: `[새로운 상담 접수] ${consultation.name}님의 ${category === 'diet' ? '다이어트' : '일반'} 차트가 접수되었습니다.`,
@@ -45,22 +78,19 @@ export async function POST(request: Request) {
           `
         });
 
-        if (emailResult.error) {
-          console.error('[Email Error] Resend API returned an error:', JSON.stringify(emailResult.error));
-        } else {
-          console.log('[Email Success] Sent successfully. ID:', emailResult.data?.id);
-        }
-      } else {
-        console.error('[Email Error] Cannot send email: Resend instance or API key is missing.');
+        if (emailError) console.error('[Resend Error]', emailError);
+        else console.log('[Resend Success]', emailData?.id);
+      } catch (err) {
+        console.error('[Resend Exception]', err);
       }
-    } catch (emailError: any) {
-      console.error('[Email Error] Unexpected exception:', emailError.message || emailError);
+    } else {
+      console.error('RESEND_API_KEY is missing');
     }
 
     return NextResponse.json({ success: true, data: consultation })
   } catch (error: any) {
-    console.error('Submission Error:', error.message || error)
-    return NextResponse.json({ success: false, error: 'Failed to submit consultation' }, { status: 500 })
+    console.error('Submission Error:', error)
+    return NextResponse.json({ success: false, error: 'Failed' }, { status: 500 })
   }
 }
 
@@ -69,28 +99,24 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url)
     const category = searchParams.get('category')
     const where = category && category !== 'all' ? { category } : {}
-    
     const consultations = await prisma.consultation.findMany({
       where,
       orderBy: { createdAt: 'desc' }
     })
     return NextResponse.json({ success: true, data: consultations })
   } catch (error) {
-    return NextResponse.json({ success: false, error: 'Failed to fetch consultations' }, { status: 500 })
+    return NextResponse.json({ success: false, error: 'Failed' }, { status: 500 })
   }
 }
 
 export async function DELETE(request: Request) {
   try {
     const { ids } = await request.json()
-    if (!Array.isArray(ids) || ids.length === 0) {
-      return NextResponse.json({ success: false, error: 'No IDs provided' }, { status: 400 })
-    }
     await prisma.consultation.deleteMany({
-      where: { id: { in: ids.map(id => parseInt(id)) } }
+      where: { id: { in: ids.map((id: any) => parseInt(id)) } }
     })
     return NextResponse.json({ success: true })
   } catch (error) {
-    return NextResponse.json({ success: false, error: 'Failed to delete consultations' }, { status: 500 })
+    return NextResponse.json({ success: false, error: 'Failed' }, { status: 500 })
   }
 }
