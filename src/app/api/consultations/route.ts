@@ -62,7 +62,7 @@ export async function POST(request: Request) {
     // 관리자 이메일 알림 발송 (비동기로 실행하여 응답 지연 최소화)
     try {
       if (resend) {
-        const adminEmail = process.env.ADMIN_EMAIL || 'hoban2011902@naver.com';
+        const adminEmail = process.env.ADMIN_EMAIL || 'omdluj@gmail.com';
         const emailResponse = await resend.emails.send({
           from: 'BBS Admin <onboarding@resend.dev>',
           to: adminEmail,
