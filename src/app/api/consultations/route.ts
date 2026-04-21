@@ -1,5 +1,8 @@
 import { NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
+import { Resend } from 'resend'
+
+const resend = new Resend(process.env.RESEND_API_KEY)
 
 export async function POST(request: Request) {
   try {
@@ -53,6 +56,36 @@ export async function POST(request: Request) {
         answersJson: JSON.stringify(answers), // 모든 답변 원본 보관
       }
     })
+
+    // 관리자 이메일 알림 발송 (비동기로 실행하여 응답 지연 최소화)
+    try {
+      const adminEmail = process.env.ADMIN_EMAIL || 'hoban2011902@naver.com';
+      await resend.emails.send({
+        from: 'BBS Admin <onboarding@resend.dev>',
+        to: adminEmail,
+        subject: `[새로운 상담 접수] ${consultation.name}님의 ${category === 'diet' ? '다이어트' : '일반'} 차트가 접수되었습니다.`,
+        html: `
+          <div style="font-family: sans-serif; padding: 20px; border: 1px solid #eee; border-radius: 10px; max-width: 600px;">
+            <h2 style="color: #333;">새로운 상담이 접수되었습니다.</h2>
+            <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;" />
+            <p><strong>접수 유형:</strong> ${category === 'diet' ? '다이어트 차트' : '체질/일반 설문'}</p>
+            <p><strong>성함:</strong> ${consultation.name}</p>
+            <p><strong>연락처:</strong> ${consultation.phone}</p>
+            <p><strong>접수 일시:</strong> ${new Date(consultation.createdAt).toLocaleString('ko-KR')}</p>
+            <div style="margin-top: 30px;">
+              <a href="${process.env.NEXT_PUBLIC_BASE_URL || 'https://bbs-ruddy-iota.vercel.app'}/admin" 
+                 style="background: #000; color: #fff; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold;">
+                 관리자 페이지에서 확인하기
+              </a>
+            </div>
+          </div>
+        `
+      });
+    } catch (emailError) {
+      console.error('Email Notification Error:', emailError);
+      // 이메일 발송 실패가 상담 접수 자체의 실패로 이어지지 않도록 함
+    }
+
     return NextResponse.json({ success: true, data: consultation })
   } catch (error) {
     console.error('Submission Error:', error)
