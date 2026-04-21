@@ -65,13 +65,12 @@ export async function POST(request: Request) {
       }
     })
 
-    // 관리자 이메일 알림 발송
+    // 관리자 이메일 알림 발송 (확실히 완료될 때까지 기다림)
     try {
       if (resend) {
-        // Vercel 환경변수 우선, 없으면 하드코딩된 본인 계정 이메일 사용
         const adminEmail = process.env.ADMIN_EMAIL || 'omdluj@gmail.com';
-        
-        console.log('Attempting to send email to:', adminEmail);
+        console.log('--- Attempting Email Send ---');
+        console.log('To:', adminEmail);
         
         const { data: emailData, error: emailError } = await resend.emails.send({
           from: 'onboarding@resend.dev',
@@ -86,7 +85,7 @@ export async function POST(request: Request) {
               <p><strong>연락처:</strong> ${consultation.phone}</p>
               <p><strong>접수 일시:</strong> ${new Date(consultation.createdAt).toLocaleString('ko-KR')}</p>
               <div style="margin-top: 30px;">
-                <a href="${process.env.NEXT_PUBLIC_BASE_URL || 'https://bbs-ruddy-iota.vercel.app'}/admin" 
+                <a href="https://bbs-ruddy-iota.vercel.app/admin" 
                    style="background: #000; color: #fff; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold;">
                    관리자 페이지에서 확인하기
                 </a>
@@ -96,20 +95,20 @@ export async function POST(request: Request) {
         });
 
         if (emailError) {
-          console.error('Resend API Error:', emailError);
+          console.error('Resend API Error Detail:', JSON.stringify(emailError));
         } else {
           console.log('Email sent successfully. ID:', emailData?.id);
         }
       } else {
-        console.warn('Resend API key is missing. Email notification skipped.');
+        console.warn('Resend API object is null. Check API Key.');
       }
-    } catch (emailError) {
-      console.error('Unexpected Email Error:', emailError);
+    } catch (emailError: any) {
+      console.error('Unexpected Email Error:', emailError.message || emailError);
     }
 
     return NextResponse.json({ success: true, data: consultation })
-  } catch (error) {
-    console.error('Submission Error:', error)
+  } catch (error: any) {
+    console.error('Submission Error:', error.message || error)
     return NextResponse.json({ success: false, error: 'Failed to submit consultation' }, { status: 500 })
   }
 }
