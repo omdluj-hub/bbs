@@ -8,11 +8,11 @@ export async function POST(request: Request) {
     if (password === 'gnrnal1075') {
       const response = NextResponse.json({ success: true });
       
-      // 쿠키 설정 보강 (Path와 SameSite 설정 확인)
+      // 쿠키 설정 보강 (SameSite: None 설정하여 iframe 내 크로스 도메인 쿠키 허용)
       response.cookies.set('admin_auth', 'true', {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
+        secure: true, // SameSite: None을 위해서는 반드시 true여야 함
+        sameSite: 'none',
         maxAge: 60 * 60 * 24 * 7,
         path: '/',
       });
